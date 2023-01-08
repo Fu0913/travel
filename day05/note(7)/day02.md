@@ -1,0 +1,543 @@
+# day02
+
+## 1.请求对象
+
+### 1.1HttpServletRequest
+
+#### 1.获取路径相关方法
+
+| 返回值       | 方法名称         | 说明                |
+| ------------ | ---------------- | ------------------- |
+| String       | getContextPath() | 获取虚拟目录名称    |
+| String       | getServletPath() | 获取servlet映射路径 |
+| String       | getRemoteAddr()  | 获取访问者ip        |
+| String       | getQueryString() | 获取请求消息数据    |
+| String       | getRequestURI()  | 获取统一资源标识符  |
+| StringBuffer | getRequestURL()  | 获取统一资源定位符  |
+
+代码
+
+```java
+@WebServlet("/demo1")
+public class RequestDemo1 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //1.获取虚拟目录名称
+        String contextPath = req.getContextPath();
+        System.out.println(contextPath);
+        //2.获取servlet映射路径
+        String servletPath = req.getServletPath();
+        System.out.println(servletPath);
+        //3.获取访问者ip
+        String remoteAddr = req.getRemoteAddr();
+        System.out.println(remoteAddr);
+        //4.获取请求消息数据
+        String queryString = req.getQueryString();
+        System.out.println(queryString);
+        //5.获取统一资源标识符
+        String requestURI = req.getRequestURI();
+        System.out.println(requestURI);
+        //6.获取统一资源定位符
+        StringBuffer requestURL = req.getRequestURL();
+        System.out.println(requestURL);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+
+```
+
+#### 2.获取请求头相关方法
+
+| 返回值              | 方法名称           | 说明                     |
+| ------------------- | ------------------ | ------------------------ |
+| String              | getHeader（）      | 根据请求头获取值         |
+| Enumeration<String> | getHeaders（）     | 根据请求头名称获取多个值 |
+| Enumeration<String> | getHeaderNames（） | 获取所有请求头名称       |
+
+代码
+
+```java
+@WebServlet("/demo2")
+public class RequestDemo2 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //1.根据请求头获取值
+        String connection = req.getHeader("Connection");
+        System.out.println(connection);
+        //2.根据请求头名称获取多个值
+        Enumeration<String> values = req.getHeaders("Accept");
+        while (values.hasMoreElements()){
+            String value = values.nextElement();
+            System.out.println(value);
+        }
+        //3.获取所有请求头名称
+        Enumeration<String> names = req.getHeaderNames();
+        while (names.hasMoreElements()){
+            String name = names.nextElement();
+            String value = req.getHeader(name);
+            System.out.println(name+": "+value);
+        }
+
+
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+#### 3.获取请求值相关方法
+
+| 返回值                | 方法名               | 说明                 |
+| --------------------- | -------------------- | -------------------- |
+| String                | getParameter（）     | 根据名称获取数据     |
+| String[]              | getParameterValues() | 根据名称获取所有数据 |
+| Map<String, String[]> | getParameterMap      | 获取所有参数的键值对 |
+
+代码
+
+1.编写注册页面regist.html
+
+```java
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>注册页面</title>
+</head>
+<body>
+
+    <form action="/day02/demo3" method="get">
+        姓名<input type="text" name="username"><br>
+        密码<input type="password" name="password"><br>
+        爱好：<input type="checkbox" name="hobby" value="study">学习
+              <input type="checkbox" name="hobby" value="run">跑步<br>
+        <button type="submit">注册</button>
+    </form>
+
+</body>
+</html>
+```
+
+2.编写Servlet
+
+```java
+@WebServlet("/demo3")
+public class RequestDemo3 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //1.根据名称获取数据
+        String username = req.getParameter("username");
+        System.out.println(username);
+        String password = req.getParameter("password");
+        System.out.println(password);
+        //2.根据名称获取所有数据 getParameterValues()
+        String[] hobbies = req.getParameterValues("hobby");
+        for (String hobby : hobbies) {
+            System.out.println(hobby);
+        }
+        System.out.println("---------------------------------------");
+        //3.获取所有的名称
+        Enumeration<String> names = req.getParameterNames();
+        while (names.hasMoreElements()){
+            String name = names.nextElement();
+            System.out.println(name);
+        }
+        //4.获取所有参数的键值对  username=zhangsan;password=123;hobby=study,hobby=run
+        Map<String, String[]> map = req.getParameterMap();
+        for (String key:map.keySet()) {
+            String[] values = map.get(key);
+            System.out.print(key+":");
+            for (String value : values) {
+                System.out.print(value+"  ");
+            }
+            System.out.println();
+        }
+
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+## 2.封装请求数据
+
+> ​	目的：我们从前端获取到请求数据时，如果参数过多，在进行传递时，方法的形参将会变得非常多，用起来很麻烦。因为，可以考虑将请求数据封装到一个实体类当中。
+
+#### 2.1手动封装到实例类Student类中
+
+步骤：1.创建Student实体类，提供一对对的Getter()和Setterf()方法
+
+```java
+public class Student {
+    private String username;
+    private String password;
+    private String[] hobby;
+
+    public Student() {
+    }
+    public Student(String username, String password, String[] hobby) {
+        this.username = username;
+        this.password = password;
+        this.hobby = hobby;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String[] getHobby() {
+        return hobby;
+    }
+
+    public void setHobby(String[] hobby) {
+        this.hobby = hobby;
+    }
+
+    @Override
+    public String toString() {
+        return "Student{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", hobby=" + Arrays.toString(hobby) +
+                '}';
+    }
+}
+```
+
+
+
+​			2.在servlet类中doGet（）方法中先获取请求数据
+
+​			3.创建Stu对象，将数据封装到Stu对象里
+
+```java
+/**
+ * 封装对象---手动封装
+ */
+@WebServlet("/demo4")
+public class RequestDemo4 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //2.在servlet类中doGet（）方法中先获取请求数据
+        String username = req.getParameter("username");
+        String password = req.getParameter("password");
+        String[] hobbies = req.getParameterValues("hobby");
+        //3.创建Stu对象，将数据封装到Stu对象里
+        Student stu = new Student(username,password,hobbies);
+//        stu.setUsername(username);
+//        stu.setPassword(password);
+//        stu.setHobby(hobbies);
+        System.out.println(stu);
+
+
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+#### 2.2工具封装到实体类Student中
+
+步骤：1.创建Student实体类，提供一对对的Getter()和Setterf()方法
+
+​			2.在servlet类中doGet（）方法中先获取请求数据
+
+​			3.将BeanUtils所需要的jar包导入到项目day02里
+
+​			4.封装数据
+
+```java
+@WebServlet("/demo5")
+public class RequestDemo5 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //1.获取所有数据
+        Map<String, String[]> map = req.getParameterMap();
+        //2.创建封装数据的Student对象
+        Student stu = new Student();
+        try {
+            BeanUtils.populate(stu,map);//map:username=zhangsan;password=123;hobby=study;
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        System.out.println(stu);
+
+
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+#### 2.3中文乱码问题
+
+1.Get提交
+
+在Tomcat8.5之前，解决请求数据中文乱码问题需要修改tomcat/config配置文件里设置字符接
+
+在Tomcat8.5之后，已经帮我们解决了
+
+2.Post提交
+
+在请求数据之前，加上req.setCharacterEncoding("utf-8");用于设置请求数据的编码格式
+
+```java
+@WebServlet("/demo6")
+public class RequestDemo6 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding("utf-8");
+        String username = req.getParameter("username");
+        System.out.println(username);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+#### 2.4请求转发
+
+1.请求域(request域)：可以在一次请求范围内进行共享数据
+
+2.常用方法：
+
+​	2.1请求对象操作共享数据方法
+
+| 返回值 | 方法名            | 说明                           |
+| ------ | ----------------- | ------------------------------ |
+| void   | setAttribute（）  | 向请求域对象存储数据           |
+| Object | getAttribute()    | 通过名称获取请求域对象中的数据 |
+| void   | removeAttribute() | 通过名称删除请求域对象中的数据 |
+
+​	2.2.实现转发
+
+| 返回值            | 方法名                   | 说明             |
+| ----------------- | ------------------------ | ---------------- |
+| RequestDispatcher | getRequestDispatcher（） | 获取请求调度对象 |
+| void              | forward（）              | 实现转发         |
+
+代码
+
+第一个servlet
+
+```java
+@WebServlet("/demo7")
+public class RequestDemo7 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //1.获取数据
+        String password = req.getParameter("password");
+        //2.设置共享数据
+        req.setAttribute("ps",password);
+        //3.获取转发对象
+        RequestDispatcher rd = req.getRequestDispatcher("/demo8");
+        //4.转发
+        rd.forward(req,resp);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+第二个servlet
+
+```java
+@WebServlet("/demo8")
+public class RequestDemo8 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //获取共享域数据
+        Object ps = req.getAttribute("ps");
+        System.out.println(ps);
+        System.out.println("demo8 is running ...");
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+3.特点：
+
+1. 浏览器地址栏不会改变
+
+ 	2.	请求域对象数据不会丢失
+ 	3.	由转发的目的地来响应客户端
+
+## 3.响应对象
+
+#### 	1.响应：就是服务器给客户端浏览器反馈结果
+
+​		响应对象：就是在项目中用于发送响应的对象
+
+#### 	2.常用状态码:
+
+| 状态码     | 说明                           |
+| ---------- | ------------------------------ |
+| 200        | 执行成功                       |
+| 302（307） | 重定向                         |
+| 400        | 请求错误，最常见：请求参数错误 |
+| 404        | 请求资源未找到                 |
+| 405        | 请求方式不被支持               |
+| 500        | 服务器运行内部错误             |
+
+#### 3.响应数据
+
+##### 	1.字节流响应数据
+
+```java
+@WebServlet("/respondemo1")
+public class ResponseDemo1 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String str="success";
+        String str2="非常感谢";
+        ServletOutputStream sos = resp.getOutputStream();
+        //解决中文乱码问题
+        resp.setContentType("text/html;charset=utf-8");
+        sos.write(str.getBytes("utf-8"));
+        sos.write(str2.getBytes("utf-8"));
+        sos.close();
+
+
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+
+
+##### 	2.字符流响应数据
+
+```java
+@WebServlet("/respondemo2")
+public class ResponseDemo2 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String str="你好，浏览器";
+        //解决中文乱码问题
+        resp.setContentType("text/html;charset=utf-8");
+        PrintWriter pw = resp.getWriter();
+        pw.write(str);
+        pw.close();
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+##### 	3.中文乱码问题:
+
+```java
+设置响应消息格式
+resp.setContentType("text/html;charset=utf-8");
+```
+
+#### 4.重定向
+
+##### 	1.重定向：客户端发送一次请求后，需要再次调用别的Servlet来实现
+
+#####     2.特点
+
+​		1.地址栏会发生改变
+
+​		2.两次请求
+
+​		3.请求域对象不能共享数据
+
+​		4.实现重定向到别的服务器里
+
+##### 	3.重定向方法
+
+| 返回值 | 方法名       | 说明       |
+| ------ | ------------ | ---------- |
+| void   | sendRedirect | 设置重定向 |
+
+##### 4.代码
+
+第一个servlet
+
+```java
+@WebServlet("/respondemo3")
+public class ResponseDemo3 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //设置数据共享
+        req.setAttribute("username","zhangsan");
+        //设置重定向
+        resp.sendRedirect(req.getContextPath()+"/respondemo4");
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
+
+
+第二个servlet
+
+```java
+@WebServlet("/respondemo4")
+public class ResponseDemo4 extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        System.out.println("respondemo4 is running");
+        Object username = req.getAttribute("username");
+        System.out.println(username);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doGet(req, resp);
+    }
+}
+```
+
